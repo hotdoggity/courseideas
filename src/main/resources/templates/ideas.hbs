@@ -4,7 +4,11 @@
 
     <ul>
         {{#each ideas}}
-            <li>{{ title }}</li>
+            <li>
+                <form action="/ideas/{{ slug }}/vote" method="post">
+                    <a href="ideas/{{ slug }}">{{ title }}</a> ( {{ voteCount }} votes ) <button>vote</button>
+                </form>
+            </li>
         {{/each}}
     </ul>
 

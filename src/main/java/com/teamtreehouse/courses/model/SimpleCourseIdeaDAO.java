@@ -2,6 +2,7 @@ package com.teamtreehouse.courses.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class SimpleCourseIdeaDAO implements CourseIdeaDAO {
     private List<CourseIdea> ideas;
@@ -18,5 +19,13 @@ public class SimpleCourseIdeaDAO implements CourseIdeaDAO {
     @Override
     public List<CourseIdea> findAll() {
         return new ArrayList<>(ideas);
+    }
+
+    @Override
+    public CourseIdea findBySlug(String slug) {
+        return ideas.stream()
+                .filter(idea -> idea.getSlug().equals(slug))
+                .findFirst()
+                .orElseThrow(NotFoundException::new);
     }
 }
