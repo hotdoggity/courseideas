@@ -4,8 +4,8 @@ import com.teamtreehouse.courses.model.CourseIdea;
 import com.teamtreehouse.courses.model.CourseIdeaDAO;
 import com.teamtreehouse.courses.model.NotFoundException;
 import com.teamtreehouse.courses.model.SimpleCourseIdeaDAO;
-import jdk.internal.org.objectweb.asm.Handle;
 import spark.ModelAndView;
+import spark.Request;
 import spark.template.handlebars.HandlebarsTemplateEngine;
 
 import java.util.HashMap;
@@ -14,6 +14,8 @@ import java.util.Map;
 import static spark.Spark.*;
 
 public class Main {
+    private static final String FLASH_MESSAGE_KEY = "flash_message";
+
     public static void main(String[] args) {
         staticFileLocation("/public");
         CourseIdeaDAO dao = new SimpleCourseIdeaDAO();
@@ -25,8 +27,8 @@ public class Main {
         }));
 
         before("/ideas", ((request, response) -> {
-            //TODO: Send message about redirect somehow
             if (request.attribute("username") == null) {
+                setFlashMessage(request, "Whoops! Please sign in first!");
                 response.redirect("/");
                 halt();
             }
@@ -35,6 +37,7 @@ public class Main {
         get("/", (req, res) -> {
             Map<String, String> model = new HashMap<>();
             model.put("username", req.attribute("username"));
+            model.put("flashMessage", captureFlashMessage(req));
             return new ModelAndView(model, "index.hbs");
             }, new HandlebarsTemplateEngine());
 
@@ -50,6 +53,7 @@ public class Main {
         get("/ideas", (req, res) -> {
             Map<String, Object> model = new HashMap<>();
             model.put("ideas", dao.findAll());
+            model.put("flashMessage", captureFlashMessage(req));
             return new ModelAndView(model, "ideas.hbs");
         }, new HandlebarsTemplateEngine());
 
@@ -63,7 +67,13 @@ public class Main {
 
         post("/ideas/:slug/vote", (request, response) -> {
             CourseIdea idea = dao.findBySlug(request.params("slug"));
-            idea.addVoter(request.attribute("username"));
+            boolean added = idea.addVoter(request.attribute("username"));
+            if (added) {
+                setFlashMessage(request, "Thanks for your vote!");
+            }
+            else {
+                setFlashMessage(request, "You already voted!");
+            }
             response.redirect("/ideas");
             return null;
         });
@@ -81,5 +91,25 @@ public class Main {
             String html = newEngine.render(new ModelAndView(null, "not-found.hbs"));
             response.body(html);
         }));
+    }
+
+    private static void setFlashMessage(Request request, String message) {
+        request.session().attribute(FLASH_MESSAGE_KEY, message);
+    }
+
+    private static String getFlashMessage(Request request) {
+        if (request.session(false) == null) return null;
+        if (!request.session().attributes().contains(FLASH_MESSAGE_KEY)) {
+            return null;
+        }
+        return (String)request.session().attribute(FLASH_MESSAGE_KEY);
+    }
+
+    private static String captureFlashMessage(Request request) {
+        String message = getFlashMessage(request);
+        if (message != null) {
+            request.session().removeAttribute(FLASH_MESSAGE_KEY);
+        }
+        return message;
     }
 }
