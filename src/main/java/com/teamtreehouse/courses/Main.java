@@ -2,7 +2,9 @@ package com.teamtreehouse.courses;
 
 import com.teamtreehouse.courses.model.CourseIdea;
 import com.teamtreehouse.courses.model.CourseIdeaDAO;
+import com.teamtreehouse.courses.model.NotFoundException;
 import com.teamtreehouse.courses.model.SimpleCourseIdeaDAO;
+import jdk.internal.org.objectweb.asm.Handle;
 import spark.ModelAndView;
 import spark.template.handlebars.HandlebarsTemplateEngine;
 
@@ -72,5 +74,12 @@ public class Main {
             model.put("idea", idea);
             return new ModelAndView(model, "idea.hbs");
         }, new HandlebarsTemplateEngine());
+
+        exception(NotFoundException.class, ((exception, request, response) -> {
+            response.status(404);
+            HandlebarsTemplateEngine newEngine = new HandlebarsTemplateEngine();
+            String html = newEngine.render(new ModelAndView(null, "not-found.hbs"));
+            response.body(html);
+        }));
     }
 }
